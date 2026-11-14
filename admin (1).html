@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>لوحة الأدمن</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--p:#5b3df5;--bg:#f4f3fb;--bd:#e6e4f4;--mu:#6b6b84;--ok:#12a150;--er:#e5484d;--wa:#d98a06}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Cairo','Segoe UI',Tahoma,sans-serif;background:var(--bg);color:#1b1b2f;font-size:14.5px;line-height:1.55}
+.top{background:#fff;border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:5}
+.top h1{margin:0;padding:12px 16px 4px;font-size:18px}
+.tabs{display:flex;gap:4px;overflow-x:auto;padding:6px 12px 8px}
+.tabs button{border:0;background:#efedfb;color:var(--p);padding:8px 14px;border-radius:10px;font:inherit;font-weight:700;white-space:nowrap;cursor:pointer}
+.tabs button.on{background:var(--p);color:#fff}
+main{padding:14px;max-width:1100px;margin:0 auto}
+.card{background:#fff;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 2px 10px rgba(60,40,140,.06)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.stat{background:#fff;border-radius:14px;padding:12px;text-align:center;box-shadow:0 2px 10px rgba(60,40,140,.06)}
+.stat b{display:block;font-size:22px}.stat span{color:var(--mu);font-size:12.5px}
+.btn{border:0;border-radius:10px;padding:8px 14px;background:var(--p);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+.btn.s{padding:4px 10px;font-size:12.5px}.btn.g{background:#eceafa;color:var(--p)}.btn.ok{background:var(--ok)}.btn.er{background:var(--er)}
+.btn:disabled{opacity:.5}
+.wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:640px}
+th,td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--bd);vertical-align:top;font-size:13.5px}
+th{background:#faf9ff;color:var(--mu);font-weight:700;white-space:nowrap}
+.st{padding:2px 9px;border-radius:99px;font-size:12px;font-weight:800;white-space:nowrap}
+.st.pending{background:#fff4dc;color:var(--wa)}.st.paid,.st.active,.st.approved{background:#eef9f1;color:var(--ok)}.st.rejected,.st.banned,.st.off{background:#fdecec;color:var(--er)}
+label{display:block;font-size:13px;font-weight:600;color:var(--mu);margin-top:10px}
+input,select,textarea{width:100%;margin-top:4px;padding:9px 10px;border:1.5px solid var(--bd);border-radius:10px;font:inherit;background:#fff}
+textarea{min-height:90px;font-family:monospace;direction:ltr}
+.hint{font-size:12px;color:var(--mu);font-weight:400}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row>input{flex:1;min-width:140px;margin:0}
+#modal{position:fixed;inset:0;background:rgba(20,15,50,.55);display:none;align-items:center;justify-content:center;z-index:20;padding:12px}
+#modal.open{display:flex}
+.sheet{background:#fff;border-radius:16px;width:100%;max-width:560px;max-height:92vh;overflow:auto;padding:16px}
+.sheet h3{margin:0 0 6px}
+#toast{position:fixed;top:12px;left:50%;transform:translate(-50%,-80px);background:#1b1b2f;color:#fff;padding:9px 16px;border-radius:10px;z-index:50;transition:transform .3s}
+#toast.show{transform:translate(-50%,0)}#toast.bad{background:var(--er)}
+.login{max-width:380px;margin:10vh auto;padding:0 16px;text-align:center}
+.help{background:#f6f5ff;border:1px dashed var(--p);border-radius:12px;padding:10px 12px;font-size:13px;margin-bottom:12px}
+.help li{margin:3px 0}
+.mu{color:var(--mu)}
+.uid{direction:ltr;text-align:left;background:#f1f0fb;border-radius:8px;padding:8px;font-family:monospace;word-break:break-all;margin:8px 0}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="modal"></div>
+<div id="toast"></div>
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/13.3.0/firebase-app.js';
+import { getAuth, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/13.3.0/firebase-auth.js';
+import { getDatabase, ref, get, set, update, push, serverTimestamp, increment } from 'https://www.gstatic.com/firebasejs/13.3.0/firebase-database.js';
+
+const firebaseConfig = {
+  apiKey: 'AIzaSyB_L9kvS_UfJyWBL73b1LjiLzkc8xcdvtI',
+  authDomain: 'gift-d9fe5.firebaseapp.com',
+  databaseURL: 'https://gift-d9fe5-default-rtdb.firebaseio.com',
+  projectId: 'gift-d9fe5',
+  storageBucket: 'gift-d9fe5.firebasestorage.app',
+  messagingSenderId: '236576816592',
+  appId: '1:236576816592:web:011fea70826974884b0dd5'
+};
+const APPCHECK_SITE_KEY = ''; // نفس المفتاح اللي في index.html لو فعّلت App Check
+const app = initializeApp(firebaseConfig);
+if (APPCHECK_SITE_KEY) {
+  try {
+    const m = await import('https://www.gstatic.com/firebasejs/13.3.0/firebase-app-check.js');
+    m.initializeAppCheck(app, { provider: new m.ReCaptchaV3Provider(APPCHECK_SITE_KEY), isTokenAutoRefreshEnabled: true });
+  } catch (e) { console.warn('AppCheck', e); }
+}
+const auth = getAuth(app);
+const db = getDatabase(app);
+const EMAIL_DOMAIN = '@gift-app.net';
+const H = { ts: () => serverTimestamp(), inc: n => increment(n) };
+
+// <AOPS>
+// عمليات الأدمن اللي بتغيّر النقاط والحالات. بتتختبر ضد القواعد.
+const num = x => Number(x) || 0;
+const AOPS = {
+  ledger: (type, points, note) => ({ type: type, points: points, note: String(note || '').slice(0, 120), ts: H.ts() }),
+  adjust(uid, pts, note, key) {
+    const o = {}; o['users/' + uid + '/points'] = H.inc(pts);
+    o['ledger/' + uid + '/' + key] = AOPS.ledger('adjust', pts, note || 'تعديل رصيد'); return o;
+  },
+  setStatus(uid, st) { const o = {}; o['users/' + uid + '/status'] = st; return o; },
+  pay(uid, wid, w, inv, pct, note, key) {
+    const b = 'withdrawals/' + uid + '/' + wid + '/', o = {};
+    o[b + 'status'] = 'paid'; o[b + 'note'] = note || ''; o[b + 'processedAt'] = H.ts();
+    o['users/' + uid + '/pendingW'] = '-';
+    const c = Math.floor(num(w.points) * num(pct) / 100);
+    if (inv && c > 0) {
+      o['users/' + inv + '/points'] = H.inc(c); o['users/' + inv + '/totalEarned'] = H.inc(c);
+      o['ledger/' + inv + '/' + key] = AOPS.ledger('commission', c, 'نسبة من سحب صديق');
+    }
+    return o;
+  },
+  reject(uid, wid, w, note, key) {
+    const b = 'withdrawals/' + uid + '/' + wid + '/', o = {};
+    o[b + 'status'] = 'rejected'; o[b + 'note'] = note || ''; o[b + 'processedAt'] = H.ts();
+    o['users/' + uid + '/pendingW'] = '-'; o['users/' + uid + '/points'] = H.inc(num(w.points));
+    o['ledger/' + uid + '/' + key] = AOPS.ledger('refund', num(w.points), 'استرجاع طلب سحب مرفوض'); return o;
+  },
+  approve(uid, tid, t, key) {
+    const b = 'submissions/' + tid + '/' + uid + '/', o = {};
+    o[b + 'status'] = 'approved'; o[b + 'reviewedAt'] = H.ts();
+    o['users/' + uid + '/points'] = H.inc(num(t.reward)); o['users/' + uid + '/totalEarned'] = H.inc(num(t.reward));
+    o['users/' + uid + '/done/' + tid] = 1;
+    o['ledger/' + uid + '/' + key] = AOPS.ledger('task', num(t.reward), 'مهمة: ' + t.title); return o;
+  },
+  rejectSub(uid, tid) {
+    const b = 'submissions/' + tid + '/' + uid + '/', o = {};
+    o[b + 'status'] = 'rejected'; o[b + 'reviewedAt'] = H.ts(); return o;
+  }
+};
+// </AOPS>
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmt = n => Number(n || 0).toLocaleString('en-US');
+const dt = ms => (ms ? new Date(ms).toLocaleString('ar-EG') : '');
+const METHODS = { vodafone: 'فودافون كاش', instapay: 'إنستاباي', etisalat: 'اتصالات كاش', orange: 'أورنج كاش', we: 'WE Pay' };
+const TABS = [['dash', '📊 الرئيسية'], ['users', '👥 المستخدمين'], ['tasks', '✅ المهام'], ['ads', '📺 الإعلانات'], ['wd', '💸 السحب'], ['subs', '🔎 الإثباتات'], ['set', '⚙️ الإعدادات']];
+const S = { tab: 'dash', uid: null, cfg: {} };
+let toastT;
+
+const SETTINGS = [
+  ['appName', 'str', 'اسم التطبيق', 'Gift'],
+  ['announcement', 'str', 'إعلان يظهر أعلى الصفحة الرئيسية (فاضي = بدون)', ''],
+  ['maintenance', 'num', '1 = إيقاف التطبيق للصيانة', 0],
+  ['pointsPerUsd', 'num', 'كم نقطة = 1 دولار', 10000],
+  ['usdToEgp', 'num', 'سعر الدولار بالجنيه (للعرض)', 50],
+  ['minWithdrawUsd', 'num', 'أقل مبلغ للسحب بالدولار', 5],
+  ['withdrawDays', 'str', 'أيام السحب: 1=الاثنين … 7=الأحد (مثال 4,5). فاضي = كل الأيام. بتتطبق من الواجهة فقط', '4,5'],
+  ['withdrawMethods', 'str', 'طرق السحب: vodafone,instapay,etisalat,orange,we', 'vodafone,instapay'],
+  ['signupBonus', 'num', 'نقاط هدية التسجيل', 50],
+  ['inviteeBonus', 'num', 'نقاط إضافية للي يسجل من رابط دعوة', 50],
+  ['referralBonus', 'num', 'نقاط الداعي لما المدعو يبقى فعّال', 300],
+  ['referralQualifyAds', 'num', 'عدد إعلانات المدعو عشان يبقى فعّال', 5],
+  ['commissionPct', 'num', 'نسبة % للداعي من سحب المدعو (بتتحسب لما تضغط «تم الدفع»)', 2],
+  ['adReward', 'num', 'نقاط الإعلان الافتراضية', 5],
+  ['maxAdReward', 'num', 'أقصى مكافأة مسموحة لأي إعلان (حماية). لازم تكون ≥ مكافأة أي إعلان', 5],
+  ['dailyAdLimit', 'num', 'أقصى عدد إعلانات يوميًا لكل مستخدم', 20],
+  ['adCooldownSec', 'num', 'الانتظار بين إعلانين بالثواني', 20],
+  ['deviceLimit', 'num', '1 = حساب واحد لكل جهاز', 1],
+  ['supportLink', 'str', 'رابط الدعم (واتساب/تليجرام)', '']
+];
+const SEED_TASKS = {
+  daily: { title: 'تسجيل الحضور اليومي', desc: 'ادخل كل يوم واستلم مكافأتك', type: 'daily', url: '', reward: 20, target: 1, timerSec: 0, verify: 'auto', repeat: 'daily', active: true },
+  inv3: { title: 'ادعُ 3 أصحاب برابطك', desc: 'لما 3 أصحاب يسجلوا برابطك ويبقوا فعّالين تاخد المكافأة', type: 'referral', url: '', reward: 500, target: 3, timerSec: 0, verify: 'auto', repeat: 'once', active: true },
+  inv10: { title: 'ادعُ 10 أصحاب برابطك', desc: 'مكافأة كبيرة لما 10 أصحاب يبقوا فعّالين', type: 'referral', url: '', reward: 2500, target: 10, timerSec: 0, verify: 'auto', repeat: 'once', active: true }
+};
+
+function toast(m, bad) { const t = $('#toast'); t.textContent = m; t.className = 'show' + (bad ? ' bad' : ''); clearTimeout(toastT); toastT = setTimeout(() => { t.className = ''; }, 3200); }
+function closeModal() { $('#modal').className = ''; $('#modal').innerHTML = ''; }
+function openModal(h) { $('#modal').innerHTML = '<div class="sheet">' + h + '</div>'; $('#modal').className = 'open'; }
+function errMsg(e) {
+  const c = (e && e.code) || '', m = String((e && e.message) || e || '');
+  if (/auth\/(invalid-credential|wrong-password|user-not-found|invalid-login-credentials)/.test(c)) return 'الرقم أو كلمة السر غلط';
+  if (c === 'auth/too-many-requests') return 'محاولات كتير، استنى شوية';
+  if (c === 'PERMISSION_DENIED' || /PERMISSION_DENIED|permission denied/i.test(m)) return 'مرفوض من قواعد الأمان. لو بتخصم نقاط تأكد إن رصيد المستخدم مش هيبقى سالب، ولو بتعدّل تأكد إن القيم صحيحة';
+  return m || 'خطأ';
+}
+async function busy(btn, fn) {
+  if (btn.disabled) return; const t = btn.textContent; btn.disabled = true;
+  try { return await fn(); } catch (e) { toast(errMsg(e), true); } finally { btn.disabled = false; btn.textContent = t; }
+}
+function tbl(head, rows) { return '<div class="wrap"><table><thead><tr>' + head.map(h => '<th>' + h + '</th>').join('') + '</tr></thead><tbody>' + (rows.length ? rows.join('') : '<tr><td colspan="' + head.length + '" class="mu">لا يوجد بيانات</td></tr>') + '</tbody></table></div>'; }
+function loading() { $('#view').innerHTML = '<div class="card mu">جاري التحميل…</div>'; }
+function onBtn(sel, fn) { document.querySelectorAll(sel).forEach(b => { b.onclick = () => busy(b, () => fn(b)); }); }
+const toArr = o => Object.keys(o || {}).map(k => Object.assign({ id: k }, o[k]));
+const fail = (e, fn) => { $('#view').innerHTML = '<div class="card"><p>' + esc(errMsg(e)) + '</p><button class="btn" id="rt">إعادة المحاولة</button></div>'; $('#rt').onclick = fn; };
+const key = path => push(ref(db, path)).key;
+const cfgNum = k => Number(S.cfg[k]) || 0;
+
+// ===== الدخول =====
+function normPhone(p) {
+  let d = String(p || '').replace(/[^\d]/g, '');
+  if (d.indexOf('0020') === 0) d = d.slice(4); else if (d.indexOf('20') === 0 && d.length === 12) d = d.slice(2);
+  if (d.length === 10 && d.charAt(0) === '1') d = '0' + d;
+  return /^01[0125]\d{8}$/.test(d) ? d : '';
+}
+function viewLogin(msg) {
+  $('#app').innerHTML = '<div class="login"><h2>🔐 لوحة الأدمن</h2>' + (msg || '') + '<div class="card"><label>رقم الموبايل<input id="ph" type="tel" inputmode="numeric" autocomplete="username"></label><label>كلمة السر<input id="pw" type="password" autocomplete="current-password"></label><button class="btn" id="go" style="width:100%;margin-top:12px">دخول</button></div></div>';
+  const go = () => busy($('#go'), async () => {
+    const ph = normPhone($('#ph').value);
+    if (!ph) throw new Error('رقم الموبايل غير صحيح');
+    const c = await signInWithEmailAndPassword(auth, ph + EMAIL_DOMAIN, $('#pw').value);
+    try { localStorage.setItem('adm_ph', ph); } catch (e) {}
+    await enterAdmin(c.user);
+  });
+  try { $('#ph').value = localStorage.getItem('adm_ph') || ''; } catch (e) {}
+  if ($('#ph').value) $('#pw').focus();
+  $('#go').onclick = go; $('#pw').onkeydown = e => { if (e.key === 'Enter') go(); }; $('#ph').onkeydown = e => { if (e.key === 'Enter') $('#pw').focus(); };
+}
+async function enterAdmin(user) {
+  let ok = false;
+  try { ok = (await get(ref(db, 'admins/' + user.uid))).val() === true; } catch (e) {}
+  if (!ok) {
+    await signOut(auth);
+    viewLogin('<div class="card" style="text-align:right"><b>غير مصرّح لك بالدخول.</b><p class="mu s" style="margin:6px 0 0"><a href="#" id="showuid">معرّف الحساب (للمالك فقط)</a></p><div id="uidbox" style="display:none"><p class="mu s">من Firebase Console ← Realtime Database ← Data: أضف <b>admins</b> ← مفتاح بالـ UID ده وقيمته <b>true</b>:</p><div class="uid">' + esc(user.uid) + '</div></div></div>');
+    $('#showuid').onclick = e => { e.preventDefault(); $('#uidbox').style.display = 'block'; };
+    return;
+  }
+  S.uid = user.uid;
+  try { S.cfg = (await get(ref(db, 'settings'))).val() || {}; } catch (e) {}
+  viewApp();
+}
+function viewApp() {
+  $('#app').innerHTML = '<div class="top"><div class="row" style="justify-content:space-between;padding-left:12px"><h1>🎁 لوحة التحكم</h1><button class="btn g s" id="lo">خروج</button></div><div class="tabs">' + TABS.map(t => '<button data-t="' + t[0] + '">' + t[1] + '</button>').join('') + '</div></div><main id="view"></main>';
+  $('#lo').onclick = async () => { await signOut(auth); viewLogin(); };
+  document.querySelectorAll('.tabs button').forEach(b => { b.onclick = () => go(b.dataset.t); });
+  go(S.tab);
+}
+function go(t) {
+  S.tab = t;
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  ({ dash: tDash, users: tUsers, tasks: tTasks, ads: tAds, wd: tWd, subs: tSubs, set: tSet })[t]();
+}
+
+// ===== نموذج عام =====
+function formModal(title, fields, vals, onSave) {
+  const html = fields.map(f => {
+    const v = vals[f.k] === undefined ? (f.d === undefined ? '' : f.d) : vals[f.k];
+    let inp;
+    if (f.t === 'select') inp = '<select data-k="' + f.k + '">' + f.o.map(o => '<option value="' + esc(o[0]) + '"' + (String(v) === String(o[0]) ? ' selected' : '') + '>' + esc(o[1]) + '</option>').join('') + '</select>';
+    else if (f.t === 'textarea') inp = '<textarea data-k="' + f.k + '">' + esc(v) + '</textarea>';
+    else if (f.t === 'check') inp = '<input type="checkbox" data-k="' + f.k + '"' + (v ? ' checked' : '') + ' style="width:auto">';
+    else inp = '<input data-k="' + f.k + '" type="' + (f.t === 'number' ? 'number' : 'text') + '" value="' + esc(v) + '">';
+    return '<label data-w="' + f.k + '">' + f.l + (f.h ? ' <span class="hint">' + f.h + '</span>' : '') + (f.t === 'check' ? ' ' : '') + inp + '</label>';
+  }).join('');
+  openModal('<h3>' + title + '</h3>' + html + '<div class="row" style="margin-top:14px"><button class="btn" id="fs">حفظ</button><button class="btn g" id="fc">إلغاء</button></div>');
+  const read = () => { const o = {}; document.querySelectorAll('.sheet [data-k]').forEach(e => { o[e.dataset.k] = e.type === 'checkbox' ? e.checked : e.value; }); return o; };
+  const vis = () => { const o = read(); fields.forEach(f => { const w = document.querySelector('[data-w="' + f.k + '"]'); if (w && f.s) w.style.display = f.s(o) ? '' : 'none'; }); };
+  document.querySelectorAll('.sheet select').forEach(s => { s.onchange = vis; });
+  vis();
+  $('#fc').onclick = closeModal;
+  $('#fs').onclick = () => busy($('#fs'), async () => { await onSave(read()); closeModal(); });
+}
+
+// ===== الرئيسية =====
+async function tDash() {
+  loading();
+  try {
+    const [u, w, s] = await Promise.all([get(ref(db, 'users')), get(ref(db, 'withdrawals')), get(ref(db, 'submissions'))]);
+    const users = toArr(u.val()); let outstanding = 0, ads = 0, paid = 0, pend = 0, pendPts = 0, subs = 0;
+    const ppu = cfgNum('pointsPerUsd') || 10000, rate = cfgNum('usdToEgp');
+    const today = Math.floor((Date.now() + 7200000) / 86400000);
+    users.forEach(x => { outstanding += x.points || 0; ads += x.adsWatched || 0; });
+    const wds = []; Object.keys(w.val() || {}).forEach(uid => Object.keys(w.val()[uid]).forEach(id => wds.push(w.val()[uid][id])));
+    wds.forEach(x => { const egp = x.points / ppu * rate; if (x.status === 'paid') paid += egp; if (x.status === 'pending') { pend++; pendPts += egp; } });
+    Object.keys(s.val() || {}).forEach(t => Object.keys(s.val()[t]).forEach(id => { if (s.val()[t][id].status === 'pending') subs++; }));
+    const c = (v, l) => '<div class="stat"><b>' + v + '</b><span>' + l + '</span></div>';
+    $('#view').innerHTML = (Object.keys(S.cfg).length ? '' : '<div class="help"><b>الإعدادات لسه ما اتجهزتش.</b> روح تبويب «الإعدادات» واضغط «تهيئة الإعدادات الافتراضية».</div>') +
+      '<div class="grid">' + c(fmt(users.length), 'إجمالي المستخدمين') + c(fmt(users.filter(x => x.qualified).length), 'مستخدمين فعّالين') + c(fmt(users.filter(x => x.status === 'banned').length), 'محظورين') +
+      c(fmt(users.filter(x => x.adDay === today).reduce((a, x) => a + (x.adsToday || 0), 0)), 'إعلانات النهارده') + c(fmt(ads), 'إجمالي الإعلانات') +
+      c(fmt(outstanding), 'نقاط عند المستخدمين') + c('≈ ' + fmt(Math.round(outstanding / ppu * rate)) + ' ج', 'التزامات (جنيه)') +
+      c(fmt(pend), 'سحب معلّق') + c(fmt(Math.round(pendPts)) + ' ج', 'قيمة السحب المعلّق') + c(fmt(Math.round(paid)) + ' ج', 'إجمالي المدفوع') + c(fmt(subs), 'إثباتات تنتظر مراجعة') + '</div>' +
+      '<div class="card" style="margin-top:12px"><b>نصيحة:</b> قارن «التزامات (جنيه)» بإيراد شبكة الإعلانات. وقبل ما تدفع أي سحب راجع صاحب الطلب: عدد الإعلانات والدعوات في تبويب المستخدمين، عشان تكشف الحسابات الوهمية.</div>';
+  } catch (e) { fail(e, tDash); }
+}
+
+// ===== المستخدمين =====
+async function tUsers(q) {
+  loading();
+  try {
+    let list = toArr((await get(ref(db, 'users'))).val());
+    const byId = {}; list.forEach(u => { byId[u.id] = u; });
+    const qq = (q || '').toLowerCase();
+    if (qq) list = list.filter(u => String(u.phone).indexOf(qq) >= 0 || String(u.name).toLowerCase().indexOf(qq) >= 0 || String(u.refCode).toLowerCase() === qq || u.id === q);
+    list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    $('#view').innerHTML = '<div class="card"><div class="row"><input id="uq" placeholder="بحث برقم الموبايل أو الاسم أو كود الدعوة أو UID" value="' + esc(q || '') + '"><button class="btn" id="us">بحث</button></div></div><div class="card">' +
+      tbl(['الاسم', 'الموبايل', 'النقاط', 'إجمالي الكسب', 'إعلانات', 'فعّال', 'دعاه', 'التسجيل', 'الحالة', 'إجراءات'], list.slice(0, 300).map(u =>
+        '<tr><td>' + esc(u.name) + '<div class="mu" style="font-size:11px">' + esc(u.refCode) + '</div></td><td>' + esc(u.phone) + '</td><td><b>' + fmt(u.points) + '</b></td><td>' + fmt(u.totalEarned) + '</td><td>' + (u.adsWatched || 0) + '</td><td>' + (u.qualified ? '✔' : '—') + '</td><td>' + esc(u.referredBy !== '-' && byId[u.referredBy] ? byId[u.referredBy].name : '—') + '</td><td>' + esc(dt(u.createdAt)) + '</td><td><span class="st ' + esc(u.status) + '">' + (u.status === 'banned' ? 'محظور' : 'نشط') + '</span></td>' +
+        '<td><div class="row"><button class="btn s g" data-adj="' + esc(u.id) + '">± نقاط</button><button class="btn s ' + (u.status === 'banned' ? 'ok' : 'er') + '" data-ban="' + esc(u.id) + '" data-st="' + esc(u.status) + '">' + (u.status === 'banned' ? 'فك الحظر' : 'حظر') + '</button></div></td></tr>')) +
+      '<p class="mu" style="font-size:12px">ملحوظة: تغيير كلمة سر مستخدم مش متاح بدون Cloud Functions. لو مستخدم نسي كلمة السر: امسح حسابه من Firebase Console ← Authentication، وخليه يسجل من جديد، وحوّله نقاطه بـ «± نقاط».</p></div>';
+    $('#us').onclick = () => tUsers($('#uq').value.trim());
+    $('#uq').onkeydown = e => { if (e.key === 'Enter') tUsers($('#uq').value.trim()); };
+    onBtn('[data-adj]', async b => {
+      const p = prompt('عدد النقاط (موجب للإضافة، سالب للخصم):'); if (p === null) return;
+      const n = parseInt(p, 10); if (!n) throw new Error('رقم غير صحيح');
+      const note = prompt('ملاحظة (اختياري):') || '';
+      await update(ref(db), AOPS.adjust(b.dataset.adj, n, note, key('ledger/' + b.dataset.adj))); toast('تم التعديل'); tUsers(q);
+    });
+    onBtn('[data-ban]', async b => {
+      const to = b.dataset.st === 'banned' ? 'active' : 'banned';
+      if (!confirm(to === 'banned' ? 'تأكيد حظر المستخدم؟' : 'تأكيد فك الحظر؟')) return;
+      await update(ref(db), AOPS.setStatus(b.dataset.ban, to)); toast('تم'); tUsers(q);
+    });
+  } catch (e) { fail(e, () => tUsers(q)); }
+}
+
+// ===== المهام =====
+const TASK_TYPES = [['link', 'رابط (فتح صفحة + عدّاد)'], ['referral', 'دعوة أصحاب'], ['daily', 'حضور يومي']];
+const TASK_FIELDS = [
+  { k: 'title', l: 'عنوان المهمة' }, { k: 'desc', l: 'وصف قصير' },
+  { k: 'type', l: 'النوع', t: 'select', o: TASK_TYPES },
+  { k: 'url', l: 'الرابط', h: '(http/https)', s: v => v.type === 'link' },
+  { k: 'timerSec', l: 'مدة الانتظار بالثواني', t: 'number', d: 15, s: v => v.type === 'link' },
+  { k: 'verify', l: 'طريقة التحقق', t: 'select', o: [['auto', 'تلقائي (بعد العدّاد)'], ['manual', 'يدوي (المستخدم يبعت إثبات وأنت توافق)']], s: v => v.type === 'link', h: 'لمهام زي متابعة صفحة استخدم «يدوي» لأن التلقائي مش بيتأكد من التنفيذ الفعلي' },
+  { k: 'repeat', l: 'التكرار', t: 'select', o: [['once', 'مرة واحدة'], ['daily', 'كل يوم']], s: v => v.type === 'link' && v.verify === 'auto' },
+  { k: 'target', l: 'عدد الأصحاب المطلوب', t: 'number', d: 3, s: v => v.type === 'referral', h: '(فعّالين)' },
+  { k: 'reward', l: 'المكافأة (نقاط)', t: 'number', d: 20 },
+  { k: 'active', l: 'مفعّلة', t: 'check', d: true }
+];
+function taskObj(v) {
+  const type = v.type, title = String(v.title || '').trim();
+  if (title.length < 3) throw new Error('اكتب عنوان للمهمة');
+  const o = { title: title, desc: String(v.desc || '').trim().slice(0, 200), type: type, url: String(v.url || '').trim(), reward: Math.max(0, Math.floor(Number(v.reward) || 0)), target: 1, timerSec: 0, verify: 'auto', repeat: 'once', active: !!v.active };
+  if (type === 'link') {
+    if (!/^https?:\/\/\S+$/i.test(o.url)) throw new Error('رابط المهمة لازم يبدأ بـ http:// أو https://');
+    o.timerSec = Math.min(600, Math.max(0, Math.floor(Number(v.timerSec) || 0)));
+    o.verify = v.verify === 'manual' ? 'manual' : 'auto';
+    o.repeat = o.verify === 'auto' && v.repeat === 'daily' ? 'daily' : 'once';
+  } else { o.url = ''; }
+  if (type === 'referral') o.target = Math.max(1, Math.floor(Number(v.target) || 1));
+  if (type === 'daily') o.repeat = 'daily';
+  return o;
+}
+async function tTasks() {
+  loading();
+  try {
+    const list = toArr((await get(ref(db, 'tasks'))).val());
+    $('#view').innerHTML = '<div class="help"><b>إزاي تضيف مهمة؟</b><ul><li><b>مهمة دعوة برابط خاص:</b> النوع «دعوة أصحاب» + العدد والمكافأة. كل مستخدم له رابط خاص بيه، والصديق بيتحسب لما يشاهد عدد الإعلانات المحدد في الإعدادات.</li><li><b>مهمة تابع/سجّل/نزّل:</b> النوع «رابط» + تحقق «يدوي»، وراجع الإثباتات من تبويب الإثباتات.</li><li><b>حضور يومي:</b> مكافأة صغيرة كل يوم.</li></ul></div>' +
+      '<div class="card"><button class="btn" id="tn">+ مهمة جديدة</button></div><div class="card">' +
+      tbl(['العنوان', 'النوع', 'المكافأة', 'التحقق', 'الحالة', 'إجراءات'], list.map(t =>
+        '<tr><td>' + esc(t.title) + '<div class="mu" style="font-size:11px">' + esc(t.url) + '</div></td><td>' + esc((TASK_TYPES.find(x => x[0] === t.type) || [0, t.type])[1].split(' ')[0]) + (t.type === 'referral' ? ' (' + t.target + ')' : '') + '</td><td>' + fmt(t.reward) + '</td><td>' + (t.type === 'link' ? (t.verify === 'manual' ? 'يدوي' : 'تلقائي ' + t.timerSec + 'ث') : '—') + '</td><td><span class="st ' + (t.active ? 'active' : 'off') + '">' + (t.active ? 'مفعّلة' : 'موقوفة') + '</span></td>' +
+        '<td><div class="row"><button class="btn s g" data-e="' + esc(t.id) + '">تعديل</button><button class="btn s er" data-d="' + esc(t.id) + '">حذف</button></div></td></tr>')) + '</div>';
+    $('#tn').onclick = () => formModal('مهمة جديدة', TASK_FIELDS, {}, async v => { const o = taskObj(v); o.createdAt = H.ts(); await set(push(ref(db, 'tasks')), o); toast('تمت الإضافة'); tTasks(); });
+    onBtn('[data-e]', async b => { const t = list.find(x => x.id === b.dataset.e); formModal('تعديل المهمة', TASK_FIELDS, t, async v => { await update(ref(db, 'tasks/' + t.id), taskObj(v)); toast('تم الحفظ'); tTasks(); }); });
+    onBtn('[data-d]', async b => { if (!confirm('حذف المهمة نهائياً؟ المستخدمين اللي نفّذوها ما بيتأثروش.')) return; await set(ref(db, 'tasks/' + b.dataset.d), null); toast('تم الحذف'); tTasks(); });
+  } catch (e) { fail(e, tTasks); }
+}
+
+// ===== الإعلانات =====
+const NETWORKS = ['Adsterra', 'Monetag', 'PropellerAds', 'مباشر (معلن محلي)', 'أخرى'].map(x => [x, x]);
+const AD_FIELDS = [
+  { k: 'name', l: 'اسم الإعلان (للإدارة والمستخدم)' },
+  { k: 'network', l: 'الشبكة', t: 'select', o: NETWORKS },
+  { k: 'type', l: 'نوع الإعلان', t: 'select', o: [['link', 'رابط (Smartlink / Direct link)'], ['html', 'كود (بانر / Native / سكربت)'], ['video', 'فيديو (mp4 أو يوتيوب)'], ['image', 'صورة بانر']] },
+  { k: 'url', l: 'الرابط', h: '(رابط الإعلان أو رابط الضغط على الصورة)', s: v => v.type === 'link' || v.type === 'image' },
+  { k: 'content', l: 'المحتوى', t: 'textarea', h: '(الصق كود الإعلان كامل، أو رابط الفيديو/الصورة)', s: v => v.type !== 'link' },
+  { k: 'durationSec', l: 'مدة المشاهدة بالثواني', t: 'number', d: 15, h: '(من 5 إلى 120)' },
+  { k: 'reward', l: 'مكافأة المستخدم (نقاط)', t: 'number', d: 0, h: '(0 = القيمة الافتراضية. ولازم ≤ «أقصى مكافأة مسموحة» في الإعدادات)' },
+  { k: 'weight', l: 'الوزن (أعلى = يظهر أكتر)', t: 'number', d: 1 },
+  { k: 'active', l: 'مفعّل', t: 'check', d: true }
+];
+function adObj(v) {
+  const type = v.type, name = String(v.name || '').trim();
+  if (name.length < 2) throw new Error('اكتب اسم للإعلان');
+  const url = String(v.url || '').trim(), content = String(v.content || '').trim();
+  if (type === 'link' && !/^https?:\/\/\S+$/i.test(url)) throw new Error('الرابط لازم يبدأ بـ http:// أو https://');
+  if ((type === 'video' || type === 'image') && !/^https?:\/\/\S+$/i.test(content)) throw new Error('رابط الفيديو/الصورة لازم يبدأ بـ http:// أو https://');
+  if (type === 'image' && url && !/^https?:\/\/\S+$/i.test(url)) throw new Error('رابط الضغط لازم يبدأ بـ http:// أو https://');
+  if (type === 'html' && content.length < 10) throw new Error('الصق كود الإعلان');
+  const reward = Math.max(0, Math.floor(Number(v.reward) || 0));
+  if (reward > cfgNum('maxAdReward')) throw new Error('المكافأة أكبر من «أقصى مكافأة مسموحة» (' + cfgNum('maxAdReward') + '). ارفعها من الإعدادات الأول.');
+  return { name: name, network: v.network, type: type, content: type === 'link' ? '' : content.slice(0, 20000), url: url, reward: reward, durationSec: Math.min(120, Math.max(5, Math.floor(Number(v.durationSec) || 15))), weight: Math.max(1, Math.floor(Number(v.weight) || 1)), active: !!v.active };
+}
+async function tAds() {
+  loading();
+  try {
+    const list = toArr((await get(ref(db, 'ads'))).val());
+    $('#view').innerHTML = '<div class="help"><b>إزاي تجيب إعلانات؟</b><ul>' +
+      '<li><b>Adsterra / Monetag:</b> سجّل كـ Publisher وضيف موقعك (رابط التطبيق بعد ما ترفعه). هتاخد <b>Smartlink/Direct Link</b> تحطه في إعلان من نوع «رابط»، أو كود <b>Native/Banner</b> تلصقه في نوع «كود».</li>' +
+      '<li><b>معلن محلي مباشر:</b> صفحة أو متجر يدفعلك على المشاهدة: حط فيديو/صورة/رابط ليه هنا، وبيتحاسب بره التطبيق بسعر تتفقوا عليه.</li>' +
+      '<li><b>مهم:</b> ما تستخدمش AdMob/AdSense لتطبيق بيدفع للمستخدم مقابل المشاهدة، سياسة جوجل بتمنع ده وممكن الحساب يتقفل.</li>' +
+      '<li>الحماية بتفرض مدة المشاهدة والحد اليومي، لكنها ما بتقدرش تتأكد إن الإعلان اتشاف فعلاً. خلّي مكافآت الإعلانات متقاربة.</li></ul></div>' +
+      '<div class="card"><button class="btn" id="an">+ إعلان جديد</button></div><div class="card">' +
+      tbl(['الاسم', 'الشبكة', 'النوع', 'المدة', 'المكافأة', 'مشاهدات', 'الحالة', 'إجراءات'], list.map(a =>
+        '<tr><td>' + esc(a.name) + '</td><td>' + esc(a.network) + '</td><td>' + esc(a.type) + '</td><td>' + a.durationSec + 'ث</td><td>' + (a.reward || 'افتراضي') + '</td><td>' + fmt(a.views) + '</td><td><span class="st ' + (a.active ? 'active' : 'off') + '">' + (a.active ? 'مفعّل' : 'موقوف') + '</span></td>' +
+        '<td><div class="row"><button class="btn s g" data-e="' + esc(a.id) + '">تعديل</button><button class="btn s ' + (a.active ? 'er' : 'ok') + '" data-tg="' + esc(a.id) + '">' + (a.active ? 'إيقاف' : 'تفعيل') + '</button><button class="btn s er" data-d="' + esc(a.id) + '">حذف</button></div></td></tr>')) + '</div>';
+    $('#an').onclick = () => formModal('إعلان جديد', AD_FIELDS, {}, async v => { const o = adObj(v); o.views = 0; o.createdAt = H.ts(); await set(push(ref(db, 'ads')), o); toast('تمت الإضافة'); tAds(); });
+    onBtn('[data-e]', async b => { const a = list.find(x => x.id === b.dataset.e); formModal('تعديل الإعلان', AD_FIELDS, a, async v => { await update(ref(db, 'ads/' + a.id), adObj(v)); toast('تم الحفظ'); tAds(); }); });
+    onBtn('[data-tg]', async b => { const a = list.find(x => x.id === b.dataset.tg); await update(ref(db, 'ads/' + a.id), { active: !a.active }); tAds(); });
+    onBtn('[data-d]', async b => { if (!confirm('حذف الإعلان نهائياً؟')) return; await set(ref(db, 'ads/' + b.dataset.d), null); toast('تم الحذف'); tAds(); });
+  } catch (e) { fail(e, tAds); }
+}
+
+// ===== السحب =====
+async function tWd(st) {
+  st = st === undefined ? 'pending' : st; loading();
+  try {
+    const [w, u] = await Promise.all([get(ref(db, 'withdrawals')), get(ref(db, 'users'))]);
+    const users = u.val() || {}, all = [];
+    Object.keys(w.val() || {}).forEach(uid => Object.keys(w.val()[uid]).forEach(id => all.push(Object.assign({ id: id, uid: uid }, w.val()[uid][id]))));
+    const list = all.filter(x => !st || x.status === st).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 300);
+    const ppu = cfgNum('pointsPerUsd') || 10000, rate = cfgNum('usdToEgp');
+    $('#view').innerHTML = '<div class="card row">' + [['pending', 'المعلّقة'], ['paid', 'المدفوعة'], ['rejected', 'المرفوضة'], ['', 'الكل']].map(x => '<button class="btn s ' + (st === x[0] ? '' : 'g') + '" data-f="' + x[0] + '">' + x[1] + '</button>').join('') + '</div><div class="card">' +
+      tbl(['التاريخ', 'المستخدم', 'الطريقة', 'الحساب', 'النقاط', 'القيمة', 'الحالة', 'إجراءات'], list.map(x => {
+        const usr = users[x.uid] || {}, usd = x.points / ppu;
+        return '<tr><td>' + esc(dt(x.createdAt)) + '</td><td>' + esc(usr.name) + '<div class="mu" style="font-size:11px">' + esc(usr.phone) + ' · إعلانات ' + (usr.adsWatched || 0) + ' · فعّال ' + (usr.qualified ? '✔' : '—') + '</div></td><td>' + esc(METHODS[x.method] || x.method) + '</td><td><b>' + esc(x.account) + '</b> <button class="btn s g" data-c="' + esc(x.account) + '">نسخ</button></td><td>' + fmt(x.points) + '</td><td>$' + usd.toFixed(2) + '<br>' + fmt(Math.round(usd * rate)) + ' ج</td><td><span class="st ' + esc(x.status) + '">' + ({ pending: 'معلّق', paid: 'مدفوع', rejected: 'مرفوض' }[x.status] || '') + '</span>' + (x.note ? '<div class="mu" style="font-size:11px">' + esc(x.note) + '</div>' : '') + '</td>' +
+          '<td>' + (x.status === 'pending' ? '<div class="row"><button class="btn s ok" data-p="' + esc(x.uid) + '|' + esc(x.id) + '">تم الدفع</button><button class="btn s er" data-r="' + esc(x.uid) + '|' + esc(x.id) + '">رفض</button></div>' : '') + '</td></tr>';
+      })) + '<p class="mu" style="font-size:12px">حوّل الفلوس يدوي الأول وبعدين اضغط «تم الدفع» (بتحسب نسبة الداعي). «رفض» بيرجّع النقاط للمستخدم.</p></div>';
+    document.querySelectorAll('[data-f]').forEach(b => { b.onclick = () => tWd(b.dataset.f); });
+    document.querySelectorAll('[data-c]').forEach(b => { b.onclick = () => { navigator.clipboard && navigator.clipboard.writeText(b.dataset.c).then(() => toast('تم النسخ')); }; });
+    const find = s => { const [uid, id] = s.split('|'); return { uid: uid, id: id, w: all.find(x => x.uid === uid && x.id === id) }; };
+    onBtn('[data-p]', async b => {
+      const f = find(b.dataset.p); if (!confirm('أكدت إنك حوّلت الفلوس؟')) return;
+      const fresh = (await get(ref(db, 'withdrawals/' + f.uid + '/' + f.id))).val();
+      if (!fresh || fresh.status !== 'pending') throw new Error('الطلب اتعالج قبل كده');
+      const usr = users[f.uid] || {}, invId = usr.referredBy && usr.referredBy !== '-' ? usr.referredBy : null;
+      const inv = invId && users[invId] && users[invId].status !== 'banned' ? invId : null;
+      await update(ref(db), AOPS.pay(f.uid, f.id, fresh, inv, cfgNum('commissionPct'), prompt('ملاحظة للمستخدم (اختياري):') || '', inv ? key('ledger/' + inv) : 'x')); toast('تم'); tWd(st);
+    });
+    onBtn('[data-r]', async b => {
+      const f = find(b.dataset.r); const n = prompt('سبب الرفض (هيظهر للمستخدم):'); if (n === null) return;
+      const fresh = (await get(ref(db, 'withdrawals/' + f.uid + '/' + f.id))).val();
+      if (!fresh || fresh.status !== 'pending') throw new Error('الطلب اتعالج قبل كده');
+      await update(ref(db), AOPS.reject(f.uid, f.id, fresh, n, key('ledger/' + f.uid))); toast('تم الرفض وإرجاع النقاط'); tWd(st);
+    });
+  } catch (e) { fail(e, () => tWd(st)); }
+}
+
+// ===== الإثباتات =====
+async function tSubs() {
+  loading();
+  try {
+    const [s, u, t] = await Promise.all([get(ref(db, 'submissions')), get(ref(db, 'users')), get(ref(db, 'tasks'))]);
+    const users = u.val() || {}, tasks = t.val() || {}, list = [];
+    Object.keys(s.val() || {}).forEach(tid => Object.keys(s.val()[tid]).forEach(uid => { const x = s.val()[tid][uid]; if (x.status === 'pending') list.push(Object.assign({ tid: tid, uid: uid }, x)); }));
+    list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    $('#view').innerHTML = '<div class="card">' + tbl(['التاريخ', 'المستخدم', 'المهمة', 'الإثبات', 'إجراءات'], list.map(x =>
+      '<tr><td>' + esc(dt(x.createdAt)) + '</td><td>' + esc((users[x.uid] || {}).name) + '<div class="mu" style="font-size:11px">' + esc((users[x.uid] || {}).phone) + '</div></td><td>' + esc((tasks[x.tid] || {}).title) + '</td><td>' + esc(x.proof) + '</td><td><div class="row"><button class="btn s ok" data-a="' + esc(x.uid) + '|' + esc(x.tid) + '">قبول</button><button class="btn s er" data-x="' + esc(x.uid) + '|' + esc(x.tid) + '">رفض</button></div></td></tr>')) + '</div>';
+    onBtn('[data-a]', async b => {
+      const [uid, tid] = b.dataset.a.split('|'); const task = tasks[tid]; if (!task) throw new Error('المهمة اتحذفت');
+      if (((users[uid] || {}).done || {})[tid] !== undefined) throw new Error('المستخدم خد مكافأة المهمة دي قبل كده');
+      await update(ref(db), AOPS.approve(uid, tid, task, key('ledger/' + uid))); toast('تم القبول وإضافة النقاط'); tSubs();
+    });
+    onBtn('[data-x]', async b => { const [uid, tid] = b.dataset.x.split('|'); await update(ref(db), AOPS.rejectSub(uid, tid)); toast('تم الرفض'); tSubs(); });
+  } catch (e) { fail(e, tSubs); }
+}
+
+// ===== الإعدادات =====
+async function tSet() {
+  loading();
+  try {
+    S.cfg = (await get(ref(db, 'settings'))).val() || {};
+    const empty = !Object.keys(S.cfg).length;
+    $('#view').innerHTML = (empty ? '<div class="help"><b>أول مرة؟</b> اضغط الزر عشان تتكتب القيم الافتراضية + المهام الأساسية (حضور يومي ودعوة 3 و10 أصحاب).<br><button class="btn" id="seed" style="margin-top:8px">تهيئة الإعدادات الافتراضية</button></div>' : '') +
+      '<div class="card">' + SETTINGS.map(s => '<label>' + esc(s[2]) + ' <span class="hint">(' + s[0] + ')</span><input data-k="' + s[0] + '" data-t="' + s[1] + '" value="' + esc(S.cfg[s[0]] === undefined ? s[3] : S.cfg[s[0]]) + '"></label>').join('') + '<button class="btn" id="ss" style="margin-top:14px">حفظ الإعدادات</button></div>';
+    const collect = () => { const v = {}; document.querySelectorAll('[data-k]').forEach(e => { v[e.dataset.k] = e.dataset.t === 'num' ? (Number(e.value) || 0) : e.value.trim(); }); return v; };
+    if (empty) $('#seed').onclick = () => busy($('#seed'), async () => {
+      const u = {}; SETTINGS.forEach(s => { u['settings/' + s[0]] = s[3]; });
+      Object.keys(SEED_TASKS).forEach(k => { u['tasks/' + k] = Object.assign({ createdAt: H.ts() }, SEED_TASKS[k]); });
+      await update(ref(db), u); toast('تمت التهيئة ✔'); tSet();
+    });
+    $('#ss').onclick = () => busy($('#ss'), async () => {
+      const v = collect(); const o = {}; Object.keys(v).forEach(k => { o['settings/' + k] = v[k]; });
+      await update(ref(db), o); S.cfg = v; toast('تم الحفظ ✔');
+    });
+  } catch (e) { fail(e, tSet); }
+}
+
+// ===== التشغيل =====
+(async function () {
+  await auth.authStateReady();
+  if (auth.currentUser) { try { await enterAdmin(auth.currentUser); } catch (e) { viewLogin(); } } else viewLogin();
+})();
+</script>
+</body>
+</html>
